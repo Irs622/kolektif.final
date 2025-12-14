@@ -1,10 +1,30 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/useAuth';
 import Navbar from './Navbar';
 import Footer from './Footer';
 import { Button } from './ui/button';
 import { ArrowRight, Users, TrendingUp, Shield } from 'lucide-react';
 
 export default function LandingPage() {
+  // Panggil hooks yang dibutuhkan
+    const { user, loading } = useAuth();
+    const navigate = useNavigate();
+
+    // --------------------------------------------------------
+    // LOGIKA PENGALIHAN (REDIRECT)
+    // --------------------------------------------------------
+    if (!loading && user) {
+        // Jika loading sudah selesai (false) dan user sudah terdeteksi (sudah login)
+        // Lakukan pengalihan ke dashboard
+        navigate('/dashboard'); 
+        return null; // Penting: Jangan render konten apa pun saat sedang mengalihkan
+    }
+    
+    // Jika masih loading, atau jika user tidak ada (belum login), lanjutkan render
+    if (loading) {
+        // Tampilkan loading state jika perlu, atau tunggu saja (return null)
+        return <div className="text-center mt-10">Memuat status pengguna...</div>;
+    }
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 via-white to-green-50">
       <Navbar />
@@ -30,7 +50,7 @@ export default function LandingPage() {
                   <ArrowRight className="ml-2 w-4 h-4" />
                 </Button>
               </Link>
-              <Link to="/profil">
+              <Link to="/login">
                 <Button size="lg" variant="outline">
                   Masuk
                 </Button>
