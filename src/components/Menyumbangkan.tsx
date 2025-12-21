@@ -38,57 +38,53 @@ export default function Menyumbangkan() {
   }, [user]);
 
   async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  e.preventDefault();
 
-    if (!user) {
-      alert("Anda harus login untuk melakukan donasi.");
-      navigate("/login");
-      return;
-    }
-
-    const namaTrim = nama.trim();
-    const donaturTrim = donatur.trim();
-    const deskripsiTrim = deskripsi.trim();
-
-    if (!namaTrim || !donaturTrim) {
-      alert("Nama barang dan nama donatur wajib diisi.");
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const { error } = await supabase.from("posts").insert({
-  nama: namaTrim,
-  kategori,
-  status: "Donasi",
-  donatur: donaturTrim,
-  deskripsi: deskripsiTrim || null,
-  reputasi: 100,
-  owner_id: user.id,
-});
-
-
-      if (error) {
-        console.error(error);
-        alert(`Gagal menyimpan donasi: ${error.message}`);
-      } else {
-        alert("Terima kasih! Donasi kamu sudah tercatat ✅");
-
-        setNama("");
-        setDonatur("");
-        setDeskripsi("");
-        setKategori("Buku");
-
-        navigate("/daftar-barang");
-      }
-    } catch (err) {
-      console.error("Unexpected error:", err);
-      alert("Terjadi kesalahan sistem.");
-    } finally {
-      setLoading(false);
-    }
+  if (!user) {
+    alert("Anda harus login untuk melakukan donasi.");
+    navigate("/login");
+    return;
   }
+
+  const namaTrim = nama.trim();
+  const deskripsiTrim = deskripsi.trim();
+
+  if (!namaTrim) {
+    alert("Nama barang wajib diisi.");
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    const { error } = await supabase.from("posts").insert({
+      title: namaTrim,              // ← sesuai kolom posts
+      kategori,
+      status: "available",           // ← supaya langsung tampil
+      description: deskripsiTrim || null,
+      donatur_id: user.id,          // ← INI KUNCI UTAMA
+    });
+
+    if (error) {
+      console.error(error);
+      alert(`Gagal menyimpan donasi: ${error.message}`);
+    } else {
+      alert("Terima kasih! Donasi kamu sudah tercatat ✅");
+
+      setNama("");
+      setDeskripsi("");
+      setKategori("Buku");
+
+      navigate("/daftar-barang");
+    }
+  } catch (err) {
+    console.error("Unexpected error:", err);
+    alert("Terjadi kesalahan sistem.");
+  } finally {
+    setLoading(false);
+  }
+}
+
 
   // Loading state saat auth belum siap
   if (authLoading) {

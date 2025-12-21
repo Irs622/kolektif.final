@@ -11,17 +11,14 @@ type Barang = {
   id: string;
   title: string;
   description: string | null;
-  status: string;
+  status: "available" | "taken";
   taken_by: string | null;
 };
 
-// 🔹 Helper untuk memisahkan teks & gambar base64
 function parseDescription(desc: string) {
   const imageMatch = desc.match(/\[IMAGE\](.*?)\[\/IMAGE\]/);
   const image = imageMatch ? imageMatch[1] : null;
-
   const text = desc.replace(/\[IMAGE\].*?\[\/IMAGE\]/, "").trim();
-
   return { text, image };
 }
 
@@ -37,20 +34,19 @@ export default function DetailBarang() {
   useEffect(() => {
     if (!id) return;
     loadBarang();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   async function loadBarang() {
     setLoading(true);
 
     const { data, error } = await supabase
-      .from("donations")
-      .select("id, title, description, status, taken_by")
+      .from("posts")
+      .select("*")
       .eq("id", id)
       .single();
 
     if (error) {
-      console.error("Supabase error:", error);
+      console.error(error);
       setBarang(null);
     } else {
       setBarang(data as Barang);
@@ -59,7 +55,7 @@ export default function DetailBarang() {
     setLoading(false);
   }
 
-  async function handleAmbilDonasi() {
+  async function handleAmbilBarang() {
     if (!barang) return;
 
     if (!user) {
@@ -70,32 +66,34 @@ export default function DetailBarang() {
 
     setRequesting(true);
 
-    try {
-      const { error } = await supabase
-        .from("donations")
-        .update({
-          status: "taken",
-          taken_by: user.id,
-        })
-        .eq("id", barang.id);
+    const { error } = await supabase
+      .from("posts")
+      .update({
+        status: "taken",
+        taken_by: user.id,
+      })
+      .eq("id", barang.id)
+      .eq("status", "available"); // 🔒 anti double ambil
 
-      if (error) {
-        alert("Donasi sudah diambil oleh orang lain.");
-      } else {
-        alert("Anda berhasil mengambil donasi ✅");
-        loadBarang(); // refresh data
-      }
-    } catch (err) {
-      console.error("Unexpected error:", err);
-      alert("Terjadi kesalahan sistem.");
-    } finally {
+    if (error) {
+      alert("Barang sudah diambil orang lain.");
       setRequesting(false);
+      return;
     }
+
+    // 🔥 UPDATE STATE → UI LANGSUNG BERUBAH
+    setBarang({
+      ...barang,
+      status: "taken",
+      taken_by: user.id,
+    });
+
+    setRequesting(false);
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <p className="text-slate-500">Memuat data...</p>
       </div>
     );
@@ -105,12 +103,10 @@ export default function DetailBarang() {
     return (
       <div className="min-h-screen bg-slate-50">
         <Navbar />
-        <div className="max-w-3xl mx-auto px-6 py-10 space-y-4">
-          <p className="text-slate-800 text-lg">
-            Barang tidak ditemukan atau sudah dihapus.
-          </p>
+        <div className="max-w-3xl mx-auto px-6 py-10">
+          <p>Barang tidak ditemukan.</p>
           <Link to="/daftar-barang">
-            <Button variant="outline">Kembali</Button>
+            <Button>Kembali</Button>
           </Link>
         </div>
         <Footer />
@@ -127,60 +123,43 @@ export default function DetailBarang() {
 
       <div className="max-w-3xl mx-auto px-6 py-10 space-y-6">
         <Link to="/daftar-barang">
-          <Button variant="ghost" className="px-0 gap-2 text-slate-600">
-            <ArrowLeft className="w-4 h-4" />
-            Kembali
+          <Button variant="ghost" className="px-0 gap-2">
+            <ArrowLeft className="w-4 h-4" /> Kembali
           </Button>
         </Link>
 
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-6">
-          <h1 className="text-2xl font-semibold text-slate-900">
-            {barang.title}
-          </h1>
+        <div className="bg-white rounded-xl p-6 space-y-4">
+          <h1 className="text-2xl font-semibold">{barang.title}</h1>
 
           {barang.description && (() => {
             const { text, image } = parseDescription(barang.description);
-
             return (
-              <div className="space-y-3">
-                {text && (
-                  <p className="text-sm text-slate-700 leading-relaxed">
-                    {text}
-                  </p>
-                )}
-
-                {image && (
-                  <img
-                    src={image}
-                    alt="Gambar donasi"
-                    className="rounded-xl max-h-80 object-contain border"
-                  />
-                )}
-              </div>
+              <>
+                {text && <p>{text}</p>}
+                {image && <img src={image} className="rounded-lg" />}
+              </>
             );
           })()}
 
-          <div className="pt-4">
-            {sudahDiambil ? (
-              diambilOlehUser ? (
-                <Button disabled className="w-full bg-green-100 text-green-700">
-                  Anda berhasil mengambil donasi
-                </Button>
-              ) : (
-                <Button disabled className="w-full bg-slate-200 text-slate-500">
-                  Donasi sudah diambil oleh orang lain
-                </Button>
-              )
-            ) : (
-              <Button
-                onClick={handleAmbilDonasi}
-                disabled={requesting}
-                className="w-full bg-green-600 hover:bg-green-700"
-              >
-                {requesting ? "Memproses..." : "Ambil Donasi"}
+          {sudahDiambil ? (
+            diambilOlehUser ? (
+              <Button disabled className="w-full bg-green-100 text-green-700">
+                Anda berhasil mengambil donasi
               </Button>
-            )}
-          </div>
+            ) : (
+              <Button disabled className="w-full">
+                Donasi sudah diambil
+              </Button>
+            )
+          ) : (
+            <Button
+              onClick={handleAmbilBarang}
+              disabled={requesting}
+              className="w-full bg-green-600"
+            >
+              {requesting ? "Memproses..." : "Ambil Donasi"}
+            </Button>
+          )}
         </div>
       </div>
 

@@ -25,16 +25,18 @@ export default function KonfirmasiTransaksi() {
   async function loadTransaksi() {
     setLoading(true);
 
-    const { data, error } = await supabase
-      .from("transactions")
-      .select("*")
-      .eq("peminjam_id", 1) // user sementara
-      .order("created_at", { ascending: false });
+    const { data: transaksi } = await supabase
+  .from("transactions")
+  .select(`
+    id,
+    status,
+    donations ( title )
+  `)
+  .eq("pemilik_id", user.id)
+  .eq("status", "Menunggu");
+;
 
-    if (error) console.error(error);
-    else setData(data as Transaksi[]);
-
-    setLoading(false);
+    
   }
 
   async function updateStatus(id: number, status: string) {
@@ -53,6 +55,20 @@ export default function KonfirmasiTransaksi() {
       loadTransaksi(); // refresh tampilan
     }
   }
+
+  async function handleSetujui(id: string) {
+  await supabase
+    .from("transactions")
+    .update({ status: "Disetujui" })
+    .eq("id", id);
+}
+
+async function handleTolak(id: string) {
+  await supabase
+    .from("transactions")
+    .update({ status: "Ditolak" })
+    .eq("id", id);
+}
 
   async function selesaiDanTambahReputasi(id: number) {
     // Tambah reputasi log

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
 import { supabase } from "../lib/supabaseClient";
@@ -301,13 +302,22 @@ export default function ProfilPengguna() {
         {/* Riwayat Transaksi */}
         <section className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-sm font-semibold text-slate-900">
-              Riwayat Transaksi Terbaru
-            </h2>
-            <Badge className="bg-slate-100 text-slate-600 border-slate-200 font-normal">
-              {riwayat.length} Transaksi
-            </Badge>
-          </div>
+  <h2 className="text-sm font-semibold text-slate-900">
+    Riwayat Transaksi Terbaru
+  </h2>
+
+  <div className="flex items-center gap-2">
+    <Badge className="bg-slate-100 text-slate-600 border-slate-200 font-normal">
+      {riwayat.length} Transaksi
+    </Badge>
+
+    <Link to="/riwayat-donasi">
+      <button className="text-xs text-blue-600 hover:underline">
+        Lihat Semua
+      </button>
+    </Link>
+  </div>
+</div>
 
           {riwayat.length === 0 ? (
             <div className="text-center py-10 bg-slate-50/50 rounded-xl border border-dashed border-slate-200">

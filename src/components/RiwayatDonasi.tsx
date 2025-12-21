@@ -28,6 +28,8 @@ type DonasiDiterima = {
   created_at: string;
 };
 
+
+
 export default function RiwayatDonasi() {
   const [tab, setTab] = useState<"diberikan" | "diterima">("diberikan");
   const [donasiDiberikan, setDonasiDiberikan] = useState<DonasiDiberikan[]>([]);
@@ -56,6 +58,23 @@ export default function RiwayatDonasi() {
     } else {
       setDonasiDiberikan(postsData as DonasiDiberikan[]);
     }
+
+
+    const { data } = await supabase
+  .from("transactions")
+  .select(`
+    id,
+    tipe,
+    status,
+    created_at,
+    donations (
+      title
+    )
+  `)
+  .or(
+    `pemilik_id.eq.${user.id},peminjam_id.eq.${user.id}`
+  )
+  .order("created_at", { ascending: false });
 
     // Donasi yang DITERIMA (transaksi tipe Donasi di mana user sebagai peminjam)
     const { data: trxData, error: trxError } = await supabase

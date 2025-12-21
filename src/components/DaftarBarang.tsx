@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+
 import Navbar from "./Navbar";
 import Footer from "./Footer";
 import { Button } from "./ui/button";
@@ -47,44 +48,23 @@ export default function DaftarBarang() {
   const [dataBarang, setDataBarang] = useState<Barang[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
 
-  async function ambilDonasi(donationId: string) {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    alert("Silakan login untuk mengambil donasi.");
-    return;
-  }
-
-  const { error } = await supabase
-    .from("donations")
-    .update({
-      status: "taken",
-      taken_by: user.id,
-    })
-    .eq("id", donationId);
-
-  if (error) {
-    console.error(error);
-    alert("Donasi sudah diambil oleh orang lain.");
-  } else {
-    alert("Donasi berhasil diambil 🙌");
-  }
-}
-
 
 useEffect(() => {
   async function loadData() {
     setLoading(true);
 
-    
-
-    
-
-   const { data, error } = await supabase
-  .from("donations")
-  .select("id, title, description, status")
+  const { data, error } = await supabase
+  .from("posts")
+  .select(`
+    id,
+    title,
+    description,
+    kategori,
+    status,
+    profiles (
+      full_name
+    )
+  `)
   .order("created_at", { ascending: false });
 
 
@@ -92,14 +72,14 @@ useEffect(() => {
       console.error("Supabase error:", error);
     } else if (data) {
       const mapped: Barang[] = data.map((item: any) => ({
-        id: item.id,
-        nama: item.title,
-        kategori: extractKategori(item.description),
-        status: item.status,
-        donatur: item.profiles?.full_name ?? "Anonim",
-        reputasi: item.profiles?.reputation ?? 0,
-        deskripsi: item.description,
-      }));
+  id: item.id,
+  nama: item.title,
+  kategori: item.kategori ?? extractKategori(item.description),
+  status: item.status,
+  donatur: item.profiles?.full_name ?? "Anonim",
+  reputasi: 0,
+  deskripsi: item.description,
+}));
 
       setDataBarang(mapped);
     }
@@ -111,15 +91,15 @@ useEffect(() => {
   
 
   const channel = supabase
-    .channel("public:donations")
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "donations" },
-      () => {
-        loadData();
-      }
-    )
-    .subscribe();
+  .channel("public:posts")
+  .on(
+    "postgres_changes",
+    { event: "*", schema: "public", table: "posts" },
+    () => {
+      loadData();
+    }
+  )
+  .subscribe();
 
     
 
@@ -201,13 +181,6 @@ useEffect(() => {
                         {item.kategori}
                       </Badge>
                       <Badge
-                        className={`text-xs ${
-                          item.status === "Donasi"
-                            ? "bg-green-100 text-green-700"
-                            : "bg-blue-100 text-blue-700"
-                        }`}
-                      >
-                        <Badge
   className={`text-xs ${
     item.status === "available"
       ? "bg-green-100 text-green-700"
@@ -217,15 +190,8 @@ useEffect(() => {
   {item.status === "available" ? "Tersedia" : "Sudah Diambil"}
 </Badge>
 
-                      </Badge>
-                      {item.status === "available" && (
-  <Button
-    onClick={() => ambilDonasi(item.id)}
-    className="w-full mt-2 bg-green-600 hover:bg-green-700"
-  >
-    Ambil Donasi
-  </Button>
-)}
+  
+
 
                     </div>
                   </div>
@@ -241,17 +207,6 @@ useEffect(() => {
                     <span className="text-slate-700 text-sm">
                       {item.donatur}
                     </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Award className="w-4 h-4 text-amber-500" />
-                    <span className="text-slate-600 text-sm">Reputasi:</span>
-                    <Badge
-                      className={`text-xs ${getReputasiBadge(
-                        item.reputasi
-                      )}`}
-                    >
-                      {item.reputasi}%
-                    </Badge>
                   </div>
                 </div>
 
